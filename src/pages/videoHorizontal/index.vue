@@ -1,5 +1,6 @@
 <script>
 import Modal from '../../components/modal';
+import answerPanel from '../../components/answerPanel';
 export default {
     data() {
         return {
