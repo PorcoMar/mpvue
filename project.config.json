@@ -31,7 +31,7 @@
 			"list": []
 		},
 		"miniprogram": {
-			"current": 4,
+			"current": 5,
 			"list": [
 				{
 					"id": 0,
@@ -64,6 +64,12 @@
 					"name": "videoHorizontal",
 					"pathName": "pages/videoHorizontal/main",
 					"query": "",
+					"scene": null
+				},
+				{
+					"id": -1,
+					"name": "orator",
+					"pathName": "pages/orator/main",
 					"scene": null
 				}
 			]

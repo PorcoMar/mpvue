@@ -5,6 +5,7 @@
     "pages/second/main",
     "pages/taskTest/main",
     "pages/video/main",
+    "pages/orator/main",
     "pages/videoHorizontal/main"
 ],
   "window": {

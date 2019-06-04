@@ -11,6 +11,7 @@
     </view>
 </template>
 <script>
+import { setTimeout } from 'timers';
 export default {
     props: {
         showAnswerPanel: {
@@ -20,7 +21,7 @@ export default {
     },
     data () {
         return {
-            showAnswer: false, //点提交后显示
+            showAnswer: false, //点提交后显示答案且不允许再选题
             right: require('../images/icon-true.png'),
             wrong: require('../images/icon-wrong.png'),
             multiple_answer: [
@@ -38,13 +39,17 @@ export default {
     },
     methods: {
         multipleChooseActiveFn (e, i) {
+            if (this.showAnswer) return; //提交以后不允许选题了
             this.multiple_answer.forEach((ex, idx) => {
                  this.$set(ex, `chooseActive`, idx === i ? true :  ex.chooseActive)
             })
             
         },
-        submitMultiple () {
+        submitMultiple () { //恢复状态的地方
             this.showAnswer = true;
+            setTimeout(() => {
+                this.showAnswer = false; //两秒后下一题 不显示答案且允许点击
+            }, 2000)
         }
     }
 }
