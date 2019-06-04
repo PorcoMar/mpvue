@@ -1,6 +1,7 @@
 <script>
 import Modal from '../../components/modal';
 import answerPanel from '../../components/answerPanel';
+import { setTimeout } from 'timers';
 export default {
     data() {
         return {
@@ -8,11 +9,11 @@ export default {
             isHorizontal: false, //是否是横屏
             isplaying: false, //视频是否正在播放
             initialTime: 0, //初始播放位置
-            showControls: false, //显示进度条
             duration: 0, //总时长
             isBackground: false, //是否退出程序
             showModal: false, //显示续播modal
-            isWorkDone: false, //是否学完过
+            doneShowControl: false, //是否学完过
+            showAnswerPanel: false, //是否显示学习面板
         };
     },
     state: {
@@ -20,10 +21,12 @@ export default {
         currentTime: 0, //当前播放位置
     },
     components: {
-        'modal': Modal
+        'modal': Modal,
+        'answer-panel': answerPanel
     },
     onLoad() {
-        this.isworkDone = false;
+        this.doneShowControl = true;
+         this.showAnswerPanel = true;
     },
     onShow() {
         console.log('----onShow----isBackground:', this.isBackground)
@@ -122,14 +125,14 @@ export default {
 <template>
     <view>
         <view class="backBtn" @click="goBackPrevious"></view>
-        <div class="contebt-box1">
+        <div class="video_content">
             <video
                 id="video"
                 class="video"
                 :src="videoSrc"
                 objectFit="cover"
                 :initial-time="initialTime"
-                :controls="isHorizontal"
+                :controls="isHorizontal && doneShowControl"
                 :show-progress="true"
                 :show-fullscreen-btn="false"
                 :show-play-btn="true"
@@ -148,14 +151,16 @@ export default {
                 @touchstart="clickVideo"
             >
                 <view class="waiting fs17" v-if="!hiddenWaiting">视频正在加载,请保持网络通畅</view>
-                <view class="attention-text">请在横屏使用</view>
             </video>
+            <answer-panel :showAnswerPanel="showAnswerPanel"></answer-panel>
+            <view class="attention-text">请在横屏使用</view>
         </div>
         <modal :show="showModal" :contentText="'你需要继续播放吗？'" :confirmText="'续播'" :cancelText="'重播'" @cancel="modalCancel" @confirm="modalConfirm"></modal>
     </view>
 </template>
 
 <style lang="less">
+// 层级：video为1 answerPanel为2 横屏提示3 返回键4 续播提示5
 .backBtn {
     width: 50rpx;
     height: 50rpx;
@@ -165,10 +170,11 @@ export default {
     top: 40rpx;
     left: 40rpx;
 }
-.contebt-box1 {
+.video_content {
     width: 100vw;
     height: 100vh;
     overflow: hidden;
+    position: relative;
 }
 .video {
     width: 100%;
@@ -184,6 +190,8 @@ export default {
     line-height: 100vh;
     text-align: center;
     position: absolute;
+    top:0;
+    left:0;
     background: rgba(0, 0, 0, 0.5);
     color: #fff;
     z-index:3;
