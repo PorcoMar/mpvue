@@ -1,71 +1,68 @@
 <template>
-    <view class="showPanel" v-if="showPanel">
-        <view class="timeCountdownProgressBar">
-            <progress class="progressBar" :percent="timerduration2" :activeColor="'#ccc'" :backgroundColor="showCountdown ? 'orange' : '#ccc'" stroke-width="6"/>
-            <progress class="progressBar" :percent="timerduration" :activeColor="showCountdown ? 'orange' : '#ccc'" :backgroundColor="'#ccc'" stroke-width="6"/>
-        </view>
-        <image class="header_image" :src="skipImage" v-if="isHeadImage"></image>
+    <view :class="[showPanel ? 'fadeInUpBig' : '', 'animated', 'showPanel']" v-if="showPanel">
+        <image class="header_image" :src="isHeadImage" v-if="isHeadImage"></image>
         <view class="question_content">
             <view class="page_idx_cont">
-                <view class="page_idx">第 120 题</view>
-                <image class="skipBtn" :src="skipImage"></image>
+                <view class="page_idx" v-if="question_id">第 {{question_id}} 题</view>
+                <image class="skipBtn" :src="skipImage" @click="skipHandle"></image>
             </view>
-            <view :class="['question_title', !isHeadImage ? 'bigTextSesc' : '']">斤斤计较啊绿色肯定积分垃圾速度快了放假阿喀琉斯剪短发加速度</view>
+            <view :class="['question_title', !isHeadImage ? 'bigTextSesc' : '']" v-if="isHeadText">{{isHeadText}}</view>
         </view>
-        <!-- 文字2个答案 -->
-        <view class="answer_area_2" v-if="multipleAnswerLength == 2">
-            <view class="select_area">
-                <view v-for="(e, i) in multipleAnswer" :key="i" @click="singelChooseActiveFn(e, i)">
-                    <view v-if="showAnswer" :class="['everyBtn', e.correct ? 'btnChoiceStyleRight' : 'btnChoiceStyleWrong']">
-                        <view class="point_text">
-                            <image :src="e.correct ? right : wrong"></image>
+        <!-- answer为文字 -->
+        <view v-if="requestDataQuestion.answer_type == 2">
+            <!-- 文字2个答案 单选-->
+            <view class="answer_area_2" v-if="requestDataQuestion.answers.length == 2">
+                <view class="select_area">
+                    <view v-for="(e, i) in requestDataQuestion.answers" :key="i" @click="singelChooseActiveFn(e, i)">
+                        <view v-if="showAnswer" :class="['everyBtn', e.correct ? 'btnChoiceStyleRight' : 'btnChoiceStyleWrong']">
+                            <view class="point_text">
+                                <image :src="e.correct ? right : wrong"></image>
+                            </view>
+                            <view class="idx_text">{{e.data}}</view>
                         </view>
-                        <view class="idx_text">{{e.text}}</view>
-                    </view>
-                    <view v-else :class="['everyBtn', e.chooseActive ? 'btnChoiceStyle_2' : '']">
-                        <view class="idx_title">{{i + 1}}</view>
-                        <view class="idx_text">{{e.text}}</view>
+                        <view v-else :class="['everyBtn', e.chooseActive ? 'btnChoiceStyle_2' : '']">
+                            <view class="idx_title">{{i + 1}}</view>
+                            <view class="idx_text">{{e.data}}</view>
+                        </view>
                     </view>
                 </view>
+                <image :src="next" v-if="isNextLight" class="nextpage_image" @click="submitNextPage"></image>
+                <image :src="nextGray" v-else class="nextpage_image"></image>
             </view>
-            <image :src="next" v-if="isNextLight" class="nextpage_image" @click="submitMultiple"></image>
-            <image :src="nextGray" v-else class="nextpage_image"></image>
-        </view>
-        <!-- 文字4个、6个答案 -->
-        <view class="answer_area" v-else>
-            <view class="select_area">
-                <view v-for="(e, i) in multipleAnswer" :key="i" :class="['everyBtn', 'btnW' + multipleAnswerLength, e.chooseActive ? 'btnChoiceStyle' : '']" @click="multipleChooseActiveFn(e, i)">
-                    <image :src="e.correct ? right : wrong" v-if="showAnswer" class="point_text"></image>
-                    <image :src="calc_radius" v-else class="point_text"></image>
-                    {{e.text}}
+            <!-- 文字4个、6个答案 注：4道文字题可能是单选也可能是多选 6道文字题必为多选-->
+            <view class="answer_area" v-else>
+                <view class="select_area">
+                    <view v-for="(e, i) in requestDataQuestion.answers" :key="i" :class="['everyBtn', 'btnW' + requestDataQuestion.answers.length, e.chooseActive ? 'btnChoiceStyle' : '']" @click="requestDataQuestion.correct_count == 1 ? singelChooseActiveFn(e, i) : multipleChooseActiveFn(e, i)">
+                        <image :src="e.correct ? right : wrong" v-if="showAnswer" class="point_text"></image>
+                        <image :src="calc_radius" v-else class="point_text"></image>
+                        {{e.data}}
+                    </view>
                 </view>
+                <image :src="next" v-if="isNextLight" class="nextpage_image" @click="submitNextPage"></image>
+                <image :src="nextGray" v-else class="nextpage_image"></image>
             </view>
-            <image :src="next" v-if="isNextLight" class="nextpage_image" @click="submitMultiple"></image>
-            <image :src="nextGray" v-else class="nextpage_image"></image>
         </view>
-        <!-- 答案是2张图片 -->
-        <view class="answer_area_image" style="display:none;">
+        <!-- 答案是2张图片 单选 -->
+        <view class="answer_area_image" v-if="requestDataQuestion.answer_type == 3">
             <view class="choose_cont">
-                <view v-for="(e, i) in multipleAnswer" :key="i" :class="['commonBtn']" @click="singelChooseActiveFn(e, i)">
+                <view v-for="(e, i) in requestDataQuestion.answers" :key="i" :class="['commonBtn']" @click="singelChooseActiveFn(e, i)">
                     <view v-if="showAnswer" :class="['mainImg', e.correct ? 'btnImgChoiceRight' : 'btnImgChoiceWrong']">
-                        <image :src="e.image"></image>
+                        <image :src="e.data"></image>
                     </view>
                     <view v-else :class="['mainImg', e.chooseActive ? 'btnImgChoiceStyle' : '']">
-                        <image :src="e.image"></image>
+                        <image :src="e.data"></image>
                     </view>
                     <image class="correctAnswer" v-if="showAnswer" :src="e.correct ? right : wrong"></image>
                     <view class="serialNumber" v-else>{{i + 1}}</view>
                 </view>
             </view>
-            <image :src="next" v-if="isNextLight" class="nextpage_image" @click="submitMultiple"></image>
+            <image :src="next" v-if="isNextLight" class="nextpage_image" @click="submitNextPage"></image>
             <image :src="nextGray" v-else class="nextpage_image"></image>
         </view>
     </view>
 </template>
 <script>
 import { setTimeout } from 'timers';
-const Timerduration = 100;
-const Timerduration2 = 0;
 export default {
     props: {
         showPanel: {
@@ -73,37 +70,26 @@ export default {
         },
         isBackground: {
             default: false
+        },
+        requestDataQuestion: {
+            default: []
         }
-
     },
     data () {
         return {
             showAnswer: false, //点提交后显示答案且不允许再选题
-            isHeadImage: false, //是否有顶部图片
-            timerduration: Timerduration, //倒计时总时间
-            timerduration2: Timerduration2, //倒计时总时间
-            showCountdown: false, //是否显示倒计时
             isNextLight: false, //是否亮起下一步按钮
-
+            isHeadImage: false, //是否有顶部图片
+            isHeadText: false, //是否有title
+            question_id: 0, //第id题
             right: require('../images/icon-true.png'),
             wrong: require('../images/icon-wrong.png'),
             next: require('../images/AAA/next.png'),
             nextGray: require('../images/AAA/next_gray.png'),
             skipImage: require('../images/AAA/skip_text.png'),
             calc_radius: require('../images/AAA/cale-radius.png'),
-            multipleAnswer: [
-                {text: '一一一咔咔咔咔咔咔扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩扩', correct: 0},
-                {text: '二二二', correct: 1},
-                // {text: '三三三', correct: 1},
-                // {text: '四四四', correct: 0},
-                // {text: '五五五', correct: 1},
-                // {text: '六六六', correct: 0},
-            ],
-            // multipleAnswer: [
-            //     {image: 'https://pic.qqtn.com/up/2019-5/2019052907541954443.jpg', correct: 1},
-            //     {image: 'https://pic.qqtn.com/up/2019-6/2019060409305094440.jpg', correct: 0},
-            // ],
-            multipleAnswerLength: 0,
+
+            chooseAnswerRandom: [], //选择的随机答案
         }
     },
     state: {
@@ -111,10 +97,11 @@ export default {
         videoContext: null
     },
     onLoad () {
-        // this.isHeadImage = true;
-        this.startTimeCountdown();
-        this.multipleAnswerLength = this.multipleAnswer.length;
-
+        console.warn(this.requestDataQuestion)
+        const {answer_type, image = '', text = '', id = 0} = this.requestDataQuestion;
+        this.isHeadImage = image;
+        this.isHeadText = text;
+        this.question_id = id;
     },
     onShow () {
         if (this.isBackground) {
@@ -124,66 +111,75 @@ export default {
         }
     },
     watch: {
-
+        requestDataQuestion (value) {
+           console.error(value)
+           if (value) {
+               const {answer_type, image = '', text = '', id = 0} = value;
+               this.isHeadImage = image;
+               this.isHeadText = text;
+               this.question_id = id;
+           }
+       }
     },
     onUnload () {
         clearInterval(this.$options.state.countdownTimer);
     },
     methods: {
-        /* 开始倒计时 */
-        startTimeCountdown () {
-            this.timerduration = Timerduration; //重置时间
-            this.timerduration2 = Timerduration2; //重置时间
-            this.showCountdown = true; //显示倒计时
-            this.timeoutDown();
-        },
-        /* 倒计时fn */
-        timeoutDown () {
-            clearInterval(this.$options.state.countdownTimer);
-            this.$options.state.countdownTimer = setInterval(() => {
-                if (this.timerduration) {
-                    this.timerduration--;
-                    this.timerduration2++;
-                } else {
-                    this.showCountdown = false;
-                    clearInterval(this.$options.state.countdownTimer);
-                }
-            }, 100)
-        },
         /*单选题事件 */
         singelChooseActiveFn (e, i) {
-            let chooseAnswer = [];
+            console.log('单选事件')
+            let chooseAnswerRandom = [];
             if (this.showAnswer) return; //点提交以后不允许选题了
-            this.multipleAnswer.forEach((ex, idx) => {
+            this.requestDataQuestion.answers.forEach((ex, idx) => {
                 if (idx === i) {
                     this.$set(ex, `chooseActive`, ex.chooseActive ? false : true)
                 } else {
                     this.$set(ex, `chooseActive`, false)
                 }
-                chooseAnswer.push(ex.chooseActive);
+                chooseAnswerRandom.push(ex.chooseActive || false);
             })
-            this.isNextLight = chooseAnswer.includes(true) ? true : false;
+            this.isNextLight = chooseAnswerRandom.includes(true) ? true : false;
+            this.chooseAnswerRandom = chooseAnswerRandom;
         },
         /*多选题选择事件 */
         multipleChooseActiveFn (e, i) {
-            let chooseAnswer = [];
+            console.log('多选事件')
+            let chooseAnswerRandom = [];
             if (this.showAnswer) return; //点提交以后不允许选题了
-            this.multipleAnswer.forEach((ex, idx) => {
+            this.requestDataQuestion.answers.forEach((ex, idx) => {
                 if (idx === i) {
                     this.$set(ex, `chooseActive`, ex.chooseActive ? false : true)
                 }
-                chooseAnswer.push(ex.chooseActive);
+                chooseAnswerRandom.push(ex.chooseActive || false);
             })
-            this.isNextLight = chooseAnswer.includes(true) ? true : false;
+            this.isNextLight = chooseAnswerRandom.includes(true) ? true : false;
+            this.chooseAnswerRandom = chooseAnswerRandom;
         },
-        /* 提交 多选 */
-        submitMultiple () {
+        /* 提交 单多选 */
+        submitNextPage () {
             this.showAnswer = true;
             this.isNextLight = false; //下一步按钮灰掉
+            console.log(this.filterChoiceAnswer());
             setTimeout(() => {//两秒后下一题
-                this.showAnswer = false;  //不显示答案且允许点击
-                clearInterval(this.$options.state.countdownTimer);
+                this.$emit('submitNextPage');
+                // 恢复默认状态
+                this.showAnswer = false;
+                this.requestDataQuestion.answers.forEach((ex, idx) => {
+                    this.$set(ex, `chooseActive`, false)
+                })
             }, 2000)
+        },
+        /* 跳过 */
+        skipHandle () {
+            this.$emit('submitNextPage');
+        },
+        /**筛选出选择的答案 */
+        filterChoiceAnswer () {
+            let chooseAnswer = [];
+            this.chooseAnswerRandom.forEach((item, idx) => {
+               if (item) chooseAnswer.push({data: this.requestDataQuestion.answers[idx].data});
+            })
+            return chooseAnswer;
         }
     }
 }
@@ -263,7 +259,7 @@ export default {
         width:698rpx;
         height:352rpx;
         padding:0 26rpx 40rpx 26rpx;
-        background:#ccc;
+        // background:#ccc;
         position:absolute;
         bottom:0;
         left:0;
@@ -444,10 +440,76 @@ export default {
         }
     }
 
+    @-webkit-keyframes fadeInUpBig {
+        from {
+            opacity: 0;
+            -webkit-transform: translate3d(0, 2000px, 0);
+            transform: translate3d(0, 2000px, 0);
+        }
+
+        to {
+            opacity: 1;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+        }
+        }
+
+        @keyframes fadeInUpBig {
+        from {
+            opacity: 0;
+            -webkit-transform: translate3d(0, 2000px, 0);
+            transform: translate3d(0, 2000px, 0);
+        }
+
+        to {
+            opacity: 1;
+            -webkit-transform: translate3d(0, 0, 0);
+            transform: translate3d(0, 0, 0);
+        }
+        }
+
+        .fadeInUpBig {
+        -webkit-animation-name: fadeInUpBig;
+        animation-name: fadeInUpBig;
+        }
+        .animated {
+        -webkit-animation-duration: 1s;
+        animation-duration: 1s;
+        -webkit-animation-fill-mode: both;
+        animation-fill-mode: both;
+        }
+
+        @-webkit-keyframes fadeOutDownBig {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+                -webkit-transform: translate3d(0, 2000px, 0);
+                transform: translate3d(0, 2000px, 0);
+            }
+        }
+
+        @keyframes fadeOutDownBig {
+            from {
+                opacity: 1;
+            }
+
+            to {
+                opacity: 0;
+                -webkit-transform: translate3d(0, 2000px, 0);
+                transform: translate3d(0, 2000px, 0);
+            }
+    }
+
+    .fadeOutDownBig {
+        -webkit-animation-name: fadeOutDownBig;
+        animation-name: fadeOutDownBig;
+    }
     @media(min-width:480px) {
         .question_content{
             height:126rpx;
-            background:#ccc;
             width:420rpx;
             padding:30rpx 0 0 0;
             margin:0 auto;
