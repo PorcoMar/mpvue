@@ -9,7 +9,12 @@ export default {
             requestDataQuestion: [], //处理过后的requestData.questions
             pageIndex: 0, //当前题目数
             updataTime: [], //暂停时间表
-            pauseTime: 0,
+            pauseTime: 0, //赋值暂停时间
+            isPlaying: false, //是否播放视频ing
+            isBackground: false, //是否中途退出
+            isLearningDone: false, //是否学习完一遍
+
+            recordUrl: '',
             requestData: {
                 "entrance": {
                     "endAudio": "/10101/subject_res/audio/end_12.mp3", 
@@ -51,7 +56,7 @@ export default {
                         "image": null, 
                         "need_pause": 1, 
                         "note_text": null, 
-                        "show_time": 4, 
+                        "show_time": 3, 
                         "text": "你能做到保护地球吗？"
                     },
                     {
@@ -65,11 +70,11 @@ export default {
                         "begin_time": 42, 
                         "correct_count": 2,
                         "duration": 30, 
-                        "id": 1, 
+                        "id": 3, 
                         "image": "https://pic.qqtn.com/up/2019-6/2019060409305094440.jpg", 
                         "need_pause": 1, 
                         "note_text": null, 
-                        "show_time": 6, 
+                        "show_time": 5, 
                         "text": "是谁开辟了天地，创造了美好的世界？"
                     },
                     {
@@ -85,11 +90,11 @@ export default {
                         "begin_time": 84, 
                         "correct_count": 4, 
                         "duration": 30, 
-                        "id": 3, 
+                        "id": 4, 
                         "image": null, 
                         "need_pause": 1, 
                         "note_text": null, 
-                        "show_time": 8, 
+                        "show_time": 6, 
                         "text": "为了保护美丽的地球，你还愿意做什么事情呢？"
                     },
                     {
@@ -101,13 +106,27 @@ export default {
                         "begin_time": 84, 
                         "correct_count": 1, 
                         "duration": 30, 
-                        "id": 3, 
+                        "id": 5, 
+                        "image": "https://pic.qqtn.com/up/2019-6/2019060409305094440.jpg", 
+                        "need_pause": 1, 
+                        "note_text": null, 
+                        "show_time": 7, 
+                        "text": "为了保护美丽的地球，你还愿意做什么事情呢？"
+                    },
+                    {
+                        "answer_type": 1, // idx: 5 录音题
+                        "answers": [], 
+                        "begin_time": 84, 
+                        "correct_count": 1, 
+                        "duration": 30, 
+                        "id": 6, 
                         "image": "https://pic.qqtn.com/up/2019-6/2019060409305094440.jpg", 
                         "need_pause": 1, 
                         "note_text": null, 
                         "show_time": 9, 
-                        "text": "为了保护美丽的地球，你还愿意做什么事情呢？"
-                    }
+                        "text": "你好，这是一个录音题，看你能不能答对？"
+                    },
+
                 ], 
                 "screen_type": 1
             },
@@ -124,16 +143,19 @@ export default {
         this.requestDataQuestion = this.dealWithAnswerRandom(this.requestData.questions);
         this.updataTime = this.updateTimeFilter(this.requestData.questions)
         console.log(this.updataTime)
-        // setTimeout(() => {
-        //     this.showAnswerPanel = true;
-        // }, 500)
-        // setTimeout(() => {
-        //     this.showAnswerPanel = true;
-        // }, 10000)
+        // this.isLearningDone = true;
+        this.recordUrl = 'http://tmp/wx1fbbaa6654693d53.o6zAJs4vJ_VjqtRsYTbpkWYLsyik.rYWomOpjOonb336f4f5baed095bb869f72167c317e8e.durationTime=2487.mp3';
         
     },
     onShow() {
-        
+        if (this.isBackground) {
+            this.isBackground = false;
+            this.$options.state.videoContext.pause(); //系统默认播放时退出回来会继续播放
+            // 如果没续播
+            if (!this.showAnswerPanel) {
+                this.$options.state.videoContext.play();
+            }
+        }
     },
     onReady() {
         this.$options.state.videoContext = wx.createVideoContext("video");
@@ -148,16 +170,19 @@ export default {
     watch: {
     },
     methods: {
+        /* 组件穿回来下一页的操作 */
         submitNextPage () {
             this.showAnswerPanel = false;
             this.pageIndex ++;
             this.$options.state.videoContext.play();
         },
+        /* 将数组里的暂停时间组成一个数组 */
         updateTimeFilter(requestDataQuestion) {
             return requestDataQuestion.map(e => {
                 return e.show_time;
             })
         },
+        /* 将答案随机打乱顺序 */
         dealWithAnswerRandom (requestDataQuestion) {
             requestDataQuestion.forEach(item => {
                 item.answers.forEach((e, i) => {
@@ -206,8 +231,14 @@ export default {
 
 <template>
     <view>
-        <!--showAnswerPanel是否显示面板；isBackground是否退出过；requestDataQuestion问题和回答的数据；-->
-        <selecct-panel :showPanel="showAnswerPanel" :isBackground="isBackground" :requestDataQuestion="requestDataQuestion[pageIndex]" @submitNextPage="submitNextPage"></selecct-panel>
+        <!--showAnswerPanel是否显示面板；requestDataQuestion问题和回答的数据；recordUrl录音文件；isLearningDone是否学完过-->
+        <selecct-panel
+            :showPanel="showAnswerPanel" 
+            :requestDataQuestion="requestDataQuestion[pageIndex]"
+            :recordUrl="recordUrl"
+            :isLearningDone="isLearningDone"
+            @submitNextPage="submitNextPage"
+        ></selecct-panel>
         <div class="video_content">
             <video
                 id="video"

@@ -4,9 +4,25 @@
         <view class="question_content">
             <view class="page_idx_cont">
                 <view class="page_idx" v-if="question_id">第 {{question_id}} 题</view>
-                <image class="skipBtn" :src="skipImage" @click="skipHandle"></image>
+                <image class="skipBtn" v-if="isLearningDone" :src="skipImage" @click="skipHandle"></image>
             </view>
             <view :class="['question_title', !isHeadImage ? 'bigTextSesc' : '']" v-if="isHeadText">{{isHeadText}}</view>
+        </view>
+        <!-- answer为录音题 -->
+        <view class="courserecord-footer" v-if="requestDataQuestion.answer_type == 1">
+            <view class="imgCont">
+                <image :src="playingSrc" :class="recordUrl ? '' : 'visiblity_hidden'" mode="widthFix" @click="playRecord"></image>
+                <image
+                    :src="microphone"
+                    :class="['pulse loop', !recordUrl ? 'animated' : '']"
+                    mode="widthFix"
+                    @touchstart="recordTouchstart"
+                    @touchcancel="recordTouchcancel"
+                    @touchend="recordTouchend"
+                ></image>
+                <image :src="next" :class="['pulse animated loop']" v-if="recordUrl" mode="widthFix" @click="nextPage"></image>
+            </view>
+            <view class="tipRecording">长按说话</view>
         </view>
         <!-- answer为文字 -->
         <view v-if="requestDataQuestion.answer_type == 2">
@@ -63,16 +79,20 @@
 </template>
 <script>
 import { setTimeout } from 'timers';
+import { animation } from '../utils/uiUtils';
 export default {
     props: {
         showPanel: {
             default: false
         },
-        isBackground: {
-            default: false
-        },
         requestDataQuestion: {
             default: []
+        },
+        recordUrl: {
+            default: ''
+        },
+        isLearningDone: {
+            default: false
         }
     },
     data () {
@@ -84,31 +104,33 @@ export default {
             question_id: 0, //第id题
             right: require('../images/icon-true.png'),
             wrong: require('../images/icon-wrong.png'),
-            next: require('../images/AAA/next.png'),
-            nextGray: require('../images/AAA/next_gray.png'),
             skipImage: require('../images/AAA/skip_text.png'),
+            nextGray: require('../images/AAA/next_gray.png'),
+            next: require('../images/AAA/next.png'),
             calc_radius: require('../images/AAA/cale-radius.png'),
+            microphone: require('../images/AAA/microphone.png'),
+            playingSrc: require('../images/AAA/play-0.png'),
+            playingSrc1: require('../images/AAA/play-1.png'),
+            playingSrc2: require('../images/AAA/play-2.png'),
 
             chooseAnswerRandom: [], //选择的随机答案
         }
     },
     state: {
-        countdownTimer: null,
-        videoContext: null
+        playingAnimation: null, //播放录音动画实例
+        voiceContext: null, //播放录音音频实例
     },
     onLoad () {
         console.warn(this.requestDataQuestion)
+        console.warn('recordUrl:', this.recordUrl)
+        this.playingSrc0 = this.playingSrc;
         const {answer_type, image = '', text = '', id = 0} = this.requestDataQuestion;
         this.isHeadImage = image;
         this.isHeadText = text;
         this.question_id = id;
     },
     onShow () {
-        if (this.isBackground) {
-            if (this.showCountdown) {
-                this.timeoutDown();
-            }
-        }
+        
     },
     watch: {
         requestDataQuestion (value) {
@@ -122,9 +144,33 @@ export default {
        }
     },
     onUnload () {
-        clearInterval(this.$options.state.countdownTimer);
+
     },
     methods: {
+        /* 播放录音 */
+        playRecord () {
+            if (!this.$options.state.playingAnimation) {
+                this.$options.state.playingAnimation = animation({
+                    files: [this.playingSrc, this.playingSrc1, this.playingSrc2].reverse(),
+                    context: this,
+                    fps: 7,
+                    data: ['playingSrc']
+                });
+            } else {
+                this.$options.state.playingAnimation.play();
+            }
+            this.$options.state.voiceContext = playVoice(this.recordUrl, () => {
+                this.stopPlayingAni();
+            });
+        },
+        /* 停止动画 */
+        stopPlayingAni() {
+            if (this.$options.state.playingAnimation) {
+                this.$options.state.playingAnimation.stop(() => {
+                    this.playingSrc = this.playingSrc0;
+                });
+            }
+        },
         /*单选题事件 */
         singelChooseActiveFn (e, i) {
             console.log('单选事件')
@@ -171,6 +217,10 @@ export default {
         },
         /* 跳过 */
         skipHandle () {
+            this.$emit('submitNextPage');
+        },
+        /* 录音下一页 */
+        nextPage () {
             this.$emit('submitNextPage');
         },
         /**筛选出选择的答案 */
@@ -253,6 +303,33 @@ export default {
         .bigTextSesc{
             font-size:54rpx;
             line-height:76rpx;
+        }
+    }
+    .courserecord-footer{
+        @baseW:216rpx;
+        width:@baseW*3;
+        height:@baseW + 50rpx;
+        position: absolute;
+        bottom:60rpx;
+        left:50%;
+        transform: translateX(-50%);
+        .imgCont{
+            width:100%;
+            height:@baseW;
+            display:flex;
+            image{
+                width:@baseW;
+                height:@baseW;
+            }
+        }
+        .tipRecording{
+            width:100%;
+            height:40rpx;
+            line-height:40rpx;
+            margin-top:10rpx;
+            text-align:center;
+            color:rgba(143,174,190,1);
+            font-size:28rpx;
         }
     }
     .answer_area{
@@ -507,6 +584,9 @@ export default {
         -webkit-animation-name: fadeOutDownBig;
         animation-name: fadeOutDownBig;
     }
+    .visiblity_hidden{
+        visibility:hidden;
+    }
     @media(min-width:480px) {
         .question_content{
             height:126rpx;
@@ -537,6 +617,25 @@ export default {
             .bigTextSesc{
                 font-size:33rpx;
                 line-height:46rpx;
+            }
+        }
+        .courserecord-footer{
+            @baseW:132rpx;
+            width:@baseW*3;
+            height:@baseW + 30rpx;
+            bottom:30rpx;
+            .imgCont{
+                height:@baseW;
+                image{
+                    width:@baseW;
+                    height:@baseW;
+                }
+            }
+            .tipRecording{
+                height:24rpx;
+                line-height:24rpx;
+                margin-top:6rpx;
+                font-size:17rpx;
             }
         }
         .answer_area{
